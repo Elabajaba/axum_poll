@@ -1,20 +1,13 @@
-use std::{
-    collections::HashMap,
-    convert::Infallible,
-    net::SocketAddr,
-    sync::Arc,
-    time::Duration,
-};
+use std::{collections::HashMap, convert::Infallible, net::SocketAddr, sync::Arc, time::Duration};
 
 use axum::{
     body::{Bytes, Full},
     extract,
     extract::{Extension, Path, Query},
-    handler::{get, patch},
     http::{Response, StatusCode},
     response::{Html, IntoResponse},
-    Json,
-    Router,
+    routing::{get, patch},
+    Json, Router,
 };
 use parking_lot::RwLock;
 use sailfish::TemplateOnce;
@@ -22,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use tower::{BoxError, ServiceBuilder};
 use tower_http::{add_extension::AddExtensionLayer, trace::TraceLayer};
 use uuid::Uuid;
+use sqlx::
 
 mod routes;
 
@@ -32,9 +26,9 @@ struct HelloTemplate {
 }
 
 // API:
-// `GET /polls` to get a JSON list of polls.// 
+// `GET /polls` to get a JSON list of polls.//
 // `POST /polls` to create a new poll.
-// `GET /polls/:id` to get a specific poll that you can vote on.// 
+// `GET /polls/:id` to get a specific poll that you can vote on.//
 // `PUT /polls/:id` to update a poll's options.
 // `POST /polls/:id` for submitting poll selections.
 
@@ -45,10 +39,17 @@ async fn main() {
         std::env::set_var("RUST_LOG", "axum_poll=debug,tower_http=debug")
     }
     tracing_subscriber::fmt::init();
-    
+
+    let pool = 
+
     let polls_api = Router::new()
         .route("/", get(routes::get_all_polls).post(routes::post_new_poll))
-        .route("/:id", get(routes::get_single_poll).post(routes::post_vote_poll).put(routes::put_update_poll));
+        .route(
+            "/:id",
+            get(routes::get_single_poll)
+                .post(routes::post_vote_poll)
+                .put(routes::put_update_poll),
+        );
 
     let app = Router::new()
         .nest("/api/polls", polls_api)
