@@ -1,22 +1,16 @@
-use std::{collections::HashMap, convert::Infallible, net::SocketAddr, sync::Arc, time::Duration};
+use std::net::SocketAddr;
 
 use axum::{
-    body::{Bytes, Full},
-    extract,
-    extract::{Extension, Path, Query},
+    body::{self, BoxBody, Full},
+    extract::Path,
     http::{Response, StatusCode},
     response::{Html, IntoResponse},
-    routing::{get, patch},
-    Json, Router,
+    routing::get,
+    Router, AddExtensionLayer,
 };
-use parking_lot::RwLock;
 use sailfish::TemplateOnce;
-use serde::{Deserialize, Serialize};
-use tower::{BoxError, ServiceBuilder};
-use tower_http::{add_extension::AddExtensionLayer, trace::TraceLayer};
-use uuid::Uuid;
-use sqlx::
 
+mod db;
 mod routes;
 
 #[derive(TemplateOnce)]
@@ -40,7 +34,9 @@ async fn main() {
     }
     tracing_subscriber::fmt::init();
 
-    let pool = 
+    let db = db::db().await;
+
+    // let middleware = ServiceBuilder::new().add_extension(db);
 
     let polls_api = Router::new()
         .route("/", get(routes::get_all_polls).post(routes::post_new_poll))
@@ -53,7 +49,8 @@ async fn main() {
 
     let app = Router::new()
         .nest("/api/polls", polls_api)
-        .route("/list/:messages", get(greet));
+        .route("/list/:messages", get(greet))
+        .layer(AddExtensionLayer::new(db));
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     tracing::debug!("listening on {}", addr);
@@ -74,18 +71,15 @@ impl<T> IntoResponse for HtmlTemplate<T>
 where
     T: TemplateOnce,
 {
-    type Body = Full<Bytes>;
-    type BodyError = Infallible;
-
-    fn into_response(self) -> Response<Self::Body> {
+    fn into_response(self) -> Response<BoxBody> {
         match self.0.render_once() {
             Ok(html) => Html(html).into_response(),
             Err(err) => Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
-                .body(Full::from(format!(
+                .body(body::boxed(Full::from(format!(
                     "Failed to render template. Error: {}",
                     err
-                )))
+                ))))
                 .unwrap(),
         }
     }

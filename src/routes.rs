@@ -7,7 +7,7 @@
 // TODO: Server Send Events or Websockets for sending poll updates to clients?
 
 use axum::{
-    extract::{rejection::PathParamsRejection, Form, Path},
+    extract::{Form, Path},
     http::StatusCode,
     response::{IntoResponse, Redirect},
     Json, Router,
