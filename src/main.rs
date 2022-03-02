@@ -1,22 +1,23 @@
 use std::net::SocketAddr;
 
+use askama::Template;
 use axum::{
     body::{self, BoxBody, Full},
-    extract::Path,
+    extract::{Path, Extension},
     http::{Response, StatusCode},
     response::{Html, IntoResponse},
     routing::get,
-    Router, AddExtensionLayer,
+    Router,
 };
-use sailfish::TemplateOnce;
 
 mod db;
 mod routes;
+mod poll;
 
-#[derive(TemplateOnce)]
-#[template(path = "hello.stpl")]
+#[derive(Template)]
+#[template(path = "hello.html")]
 struct HelloTemplate {
-    messages: Vec<String>,
+    messages: Vec<String>,  
 }
 
 // API:
@@ -50,7 +51,8 @@ async fn main() {
     let app = Router::new()
         .nest("/api/polls", polls_api)
         .route("/list/:messages", get(greet))
-        .layer(AddExtensionLayer::new(db));
+        .layer(Extension(db));
+
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     tracing::debug!("listening on {}", addr);
@@ -69,10 +71,10 @@ struct HtmlTemplate<T>(T);
 
 impl<T> IntoResponse for HtmlTemplate<T>
 where
-    T: TemplateOnce,
+    T: Template,
 {
     fn into_response(self) -> Response<BoxBody> {
-        match self.0.render_once() {
+        match self.0.render() {
             Ok(html) => Html(html).into_response(),
             Err(err) => Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
