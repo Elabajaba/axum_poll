@@ -13,8 +13,8 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use rusty_ulid::{Ulid, generate_ulid_string};
-use sqlx::{SqlitePool, Executor};
+use rusty_ulid::{generate_ulid_string, Ulid};
+use sqlx::{Executor, SqlitePool, Transaction, Acquire};
 
 pub(crate) async fn get_all_polls() {
     unimplemented!()
@@ -32,8 +32,10 @@ pub(crate) async fn post_new_poll(
 ) -> impl IntoResponse {
     let id = generate_ulid_string();
 
-    let mut connection = db.acquire().await.unwrap(); // TODO: This is fallible. 
+    let mut connection = db.acquire().await.unwrap(); // TODO: This is fallible.
     // We need to hook up error handling middleware to handle not being able to acquire the db.
+
+    let mut transaction = connection.begin().await.unwrap(); // TODO: This is fallible.
 
     // Create the poll.
     let _created_poll = sqlx::query_as!(
@@ -41,16 +43,32 @@ pub(crate) async fn post_new_poll(
         r#"
         INSERT INTO polls ( poll_id, title, multi )
         VALUES ( ?1, ?2, ?3 )
-        "#, id, input.title, input.multi,
-    ).execute(&mut connection).await.unwrap();
+        "#,
+        id,
+        input.title,
+        input.multi,
+    )
+    .execute(&mut transaction)
+    .await
+    .unwrap();
 
     for option in input.options {
         let option_id = generate_ulid_string();
-        sqlx::query!(r#"
+        sqlx::query!(
+            r#"
         INSERT INTO poll_options ( poll_option_id, poll_id, option )
         VALUES ( ?1, ?2, ?3 )
-        "#, option_id, id, option).execute(&db).await.unwrap();
+        "#,
+            option_id,
+            id,
+            option
+        )
+        .execute(&mut transaction)
+        .await
+        .unwrap();
     }
+
+    transaction.commit().await.unwrap();
 
     (StatusCode::CREATED, Json(id))
 
