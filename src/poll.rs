@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use rusty_ulid::Ulid;
 use serde::{Deserialize, Serialize};
 use sqlx::{pool::PoolConnection, Sqlite};
@@ -44,10 +46,13 @@ pub async fn get_database_polls_from_db(mut connection: PoolConnection<Sqlite>) 
     .await
     .unwrap();
 
+    // TODO: See if we can directly insert Ulids as bytes into the database, instead of converting to strings.
     let polls: Vec<DatabasePoll> = polls
         .iter()
         .map(|rec| {
-            let poll_id = Ulid::try_from(rec.poll_id.as_slice()).unwrap();
+            let temp = String::from_utf8(rec.poll_id.clone()).unwrap();
+            let poll_id = Ulid::from_str(&temp).unwrap();
+            // let poll_id = Ulid::try_from(rec.poll_id.as_slice()).unwrap();
             DatabasePoll {
                 poll_id,
                 title: rec.title.to_owned(),

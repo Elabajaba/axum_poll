@@ -1,5 +1,5 @@
-use std::str::FromStr;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
+use std::str::FromStr;
 
 pub async fn db() -> SqlitePool {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL env not set");

@@ -16,7 +16,7 @@ use axum::{
     Json,
 };
 use rusty_ulid::{generate_ulid_string, Ulid};
-use sqlx::{SqlitePool, Acquire};
+use sqlx::{Acquire, SqlitePool};
 
 pub(crate) async fn get_all_polls(Extension(db): Extension<SqlitePool>) -> impl IntoResponse {
     let mut connection = db.acquire().await.unwrap(); // TODO: Error handling middleware.
@@ -57,10 +57,10 @@ pub(crate) async fn post_new_poll(
     Json(input): Json<CreatePoll>,
     Extension(db): Extension<SqlitePool>,
 ) -> impl IntoResponse {
+    // TODO: See if we can directly insert Ulids as bytes into the database, instead of converting to strings.
     let id = generate_ulid_string();
 
     let mut connection = db.acquire().await.unwrap(); // TODO: This is fallible.
-    // We need to hook up error handling middleware to handle not being able to acquire the db.
 
     let mut transaction = connection.begin().await.unwrap(); // TODO: This is fallible.
 
@@ -81,7 +81,9 @@ pub(crate) async fn post_new_poll(
 
     // TODO: Batch this somehow? Currently doing way too many transactions here.
     for option in input.options {
+        // TODO: See if we can directly insert Ulids as bytes into the database, instead of converting to strings.
         let option_id = generate_ulid_string();
+
         sqlx::query!(
             r#"
         INSERT INTO poll_options ( poll_option_id, poll_id, option )
