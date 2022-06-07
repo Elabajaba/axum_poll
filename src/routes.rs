@@ -6,7 +6,9 @@
 // `POST /polls/:id` for submitting poll selections.
 // TODO: Server Send Events or Websockets for sending poll updates to clients?
 
-use crate::poll::{CreatePoll, Poll};
+use std::str::FromStr;
+
+use crate::poll::{CreatePoll, DatabasePoll};
 use axum::{
     extract::{Extension, Path},
     http::StatusCode,
@@ -14,10 +16,35 @@ use axum::{
     Json,
 };
 use rusty_ulid::{generate_ulid_string, Ulid};
-use sqlx::{Executor, SqlitePool, Transaction, Acquire};
+use sqlx::{SqlitePool, Acquire};
 
-pub(crate) async fn get_all_polls() {
-    unimplemented!()
+pub(crate) async fn get_all_polls(Extension(db): Extension<SqlitePool>) -> impl IntoResponse {
+    let mut connection = db.acquire().await.unwrap(); // TODO: Error handling middleware.
+
+    let polls = sqlx::query!(
+        r#"
+        SELECT poll_id as poll_id, title as title
+        FROM polls
+        ORDER BY poll_id
+        "#
+    )
+    .fetch_all(&mut connection)
+    .await
+    .unwrap();
+
+    let polls: Vec<DatabasePoll> = polls
+        .iter()
+        .map(|rec| {
+            let poll_id_string = String::from_utf8(rec.poll_id.clone()).unwrap();
+            let poll_id = Ulid::from_str(&poll_id_string).unwrap();
+            DatabasePoll {
+                poll_id,
+                title: rec.title.to_owned(),
+            }
+        })
+        .collect();
+
+    (StatusCode::OK, Json(polls))
 }
 
 // Creates a new poll
@@ -52,6 +79,7 @@ pub(crate) async fn post_new_poll(
     .await
     .unwrap();
 
+    // TODO: Batch this somehow? Currently doing way too many transactions here.
     for option in input.options {
         let option_id = generate_ulid_string();
         sqlx::query!(
@@ -79,15 +107,15 @@ pub(crate) async fn post_new_poll(
     // constraint fk_polls foreign key(poll_id) references polls(id)
 }
 
-pub(crate) async fn put_update_poll(Path(id): Path<Ulid>) {
+pub(crate) async fn put_update_poll(Path(_id): Path<Ulid>) {
     unimplemented!()
 }
 
-pub(crate) async fn get_single_poll(Path(id): Path<Ulid>) {
+pub(crate) async fn get_single_poll(Path(_id): Path<Ulid>) {
     unimplemented!()
 }
 
 // TODO: How do I send the vote choices, and how do I extract them.
-pub(crate) async fn post_vote_poll(Path(id): Path<Ulid>) {
+pub(crate) async fn post_vote_poll(Path(_id): Path<Ulid>) {
     unimplemented!()
 }

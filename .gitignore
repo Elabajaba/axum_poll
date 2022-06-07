@@ -1,1 +1,7 @@
 /target
+.env
+# Ignore sqlite db stuff
+*.db
+*.sqlite
+*.*-shm
+*.*-wal

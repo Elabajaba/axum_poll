@@ -1,0 +1,6 @@
+<h1>Polls</h1>
+<ul>
+{% for poll in polls %}
+    <li>{{ poll.title }} {{ poll.poll_id }}</li>
+{% endfor %}
+</ul>

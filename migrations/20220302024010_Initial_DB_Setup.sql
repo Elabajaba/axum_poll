@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS polls
 (
-    poll_id          BLOB PRIMARY KEY    NOT NULL,
+    poll_id     BLOB PRIMARY KEY    NOT NULL,
     title       TEXT                NOT NULL,
     multi       BOOLEAN             NOT NULL DEFAULT 0
 );

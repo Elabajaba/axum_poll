@@ -1,11 +1,7 @@
 use std::net::SocketAddr;
 
-use askama::Template;
 use axum::{
-    body::{self, BoxBody, Full},
-    extract::{Path, Extension},
-    http::{Response, StatusCode},
-    response::{Html, IntoResponse},
+    extract::Extension,
     routing::get,
     Router,
 };
@@ -13,12 +9,7 @@ use axum::{
 mod db;
 mod routes;
 mod poll;
-
-#[derive(Template)]
-#[template(path = "hello.html")]
-struct HelloTemplate {
-    messages: Vec<String>,  
-}
+mod templates;
 
 // API:
 // `GET /polls` to get a JSON list of polls.//
@@ -38,8 +29,6 @@ async fn main() {
 
     let db = db::db().await;
 
-    // let middleware = ServiceBuilder::new().add_extension(db);
-
     let polls_api = Router::new()
         .route("/", get(routes::get_all_polls).post(routes::post_new_poll))
         .route(
@@ -51,7 +40,8 @@ async fn main() {
 
     let app = Router::new()
         .nest("/api/polls", polls_api)
-        .route("/list/:messages", get(greet))
+        .route("/list/:messages", get(templates::greet))
+        .route("/polls", get(templates::temp))
         .layer(Extension(db));
 
 
@@ -61,29 +51,4 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
-}
-
-async fn greet(Path(messages): Path<Vec<String>>) -> impl IntoResponse {
-    let template = HelloTemplate { messages };
-    HtmlTemplate(template)
-}
-
-struct HtmlTemplate<T>(T);
-
-impl<T> IntoResponse for HtmlTemplate<T>
-where
-    T: Template,
-{
-    fn into_response(self) -> Response<BoxBody> {
-        match self.0.render() {
-            Ok(html) => Html(html).into_response(),
-            Err(err) => Response::builder()
-                .status(StatusCode::INTERNAL_SERVER_ERROR)
-                .body(body::boxed(Full::from(format!(
-                    "Failed to render template. Error: {}",
-                    err
-                ))))
-                .unwrap(),
-        }
-    }
 }
