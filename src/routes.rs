@@ -36,7 +36,7 @@ pub(crate) async fn post_new_poll(
     // We need to hook up error handling middleware to handle not being able to acquire the db.
 
     // Create the poll.
-    let created_poll = sqlx::query_as!(
+    let _created_poll = sqlx::query_as!(
         Poll,
         r#"
         INSERT INTO polls ( poll_id, title, multi )
@@ -69,7 +69,7 @@ pub(crate) async fn get_single_poll(Path(id): Path<Ulid>) {
     unimplemented!()
 }
 
-// TODO: How do I send the vote choices, and how do I exract them.
+// TODO: How do I send the vote choices, and how do I extract them.
 pub(crate) async fn post_vote_poll(Path(id): Path<Ulid>) {
     unimplemented!()
 }
