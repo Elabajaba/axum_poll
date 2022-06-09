@@ -1,14 +1,12 @@
 use std::net::SocketAddr;
 
-use axum::{
-    extract::Extension,
-    routing::get,
-    Router,
-};
+use axum::{extract::Extension, routing::get, Router};
+use tower_http::trace::TraceLayer;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod db;
-mod routes;
 mod poll;
+mod routes;
 mod templates;
 
 // API:
@@ -22,10 +20,18 @@ mod templates;
 async fn main() {
     dotenvy::dotenv().ok();
     // Set the RUST_LOG, if it hasn't been explicitly defined
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "axum_poll=debug,tower_http=debug")
-    }
-    tracing_subscriber::fmt::init();
+    // if std::env::var_os("RUST_LOG").is_none() {
+    //     std::env::set_var("RUST_LOG", "axum_poll=debug,tower_http=debug")
+    // }
+    // tracing_subscriber::fmt::init();
+
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::new(
+            std::env::var("RUST_LOG")
+                .unwrap_or_else(|_| "axum_poll=debug,tower_http=debug".into()),
+        ))
+        .with(tracing_subscriber::fmt::layer())
+        .init();
 
     let db = db::db().await;
 
@@ -42,8 +48,8 @@ async fn main() {
         .nest("/api/polls", polls_api)
         .route("/list/:messages", get(templates::greet))
         .route("/polls", get(templates::temp))
-        .layer(Extension(db));
-
+        .layer(Extension(db))
+        .layer(TraceLayer::new_for_http());
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     tracing::debug!("listening on {}", addr);

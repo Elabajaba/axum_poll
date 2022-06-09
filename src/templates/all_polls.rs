@@ -23,8 +23,3 @@ pub async fn temp(Extension(db): Extension<SqlitePool>) -> impl IntoResponse {
 
     super::HtmlTemplate(template)
 }
-
-// async fn greet(Path(messages): Path<Vec<String>>) -> impl IntoResponse {
-//     let template = HelloTemplate { messages };
-//     HtmlTemplate(template)
-// }
