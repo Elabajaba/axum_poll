@@ -1,7 +1,9 @@
-use std::net::SocketAddr;
+use std::{error::Error, net::SocketAddr, time::Duration};
 
-use axum::{extract::Extension, routing::get, Router};
+use axum::{error_handling::HandleErrorLayer, extract::Extension, routing::get, Router, http::{Method, Uri, StatusCode}, BoxError};
+use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
+use tracing_error::ErrorLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod db;
@@ -17,20 +19,17 @@ mod templates;
 // `POST /polls/:id` for submitting poll selections.
 
 #[tokio::main]
-async fn main() {
-    dotenvy::dotenv().ok();
-    // Set the RUST_LOG, if it hasn't been explicitly defined
-    // if std::env::var_os("RUST_LOG").is_none() {
-    //     std::env::set_var("RUST_LOG", "axum_poll=debug,tower_http=debug")
-    // }
-    // tracing_subscriber::fmt::init();
+async fn main() -> Result<(), Box<dyn Error>> {
+    // Get the .env vars.
+    // dotenvy::dotenv().ok();
+    color_eyre::install()?;
 
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG")
-                .unwrap_or_else(|_| "axum_poll=debug,tower_http=debug".into()),
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "axum_poll=debug,tower_http=debug".into()),
         ))
         .with(tracing_subscriber::fmt::layer())
+        .with(ErrorLayer::default())
         .init();
 
     let db = db::db().await;
@@ -49,12 +48,31 @@ async fn main() {
         .route("/list/:messages", get(templates::greet))
         .route("/polls", get(templates::temp))
         .layer(Extension(db))
-        .layer(TraceLayer::new_for_http());
+        .layer(TraceLayer::new_for_http())
+        .layer(
+            ServiceBuilder::new()
+                .layer(HandleErrorLayer::new(handle_timeout_error))
+                .timeout(Duration::from_secs(30)),
+        );
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     tracing::debug!("listening on {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
-        .await
-        .unwrap();
+        .await?;
+
+    Ok(())
+}
+
+async fn handle_timeout_error(
+    // `Method` and `Uri` are extractors so they can be used here
+    method: Method,
+    uri: Uri,
+    // the last argument must be the error itself
+    err: BoxError,
+) -> (StatusCode, String) {
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("`{} {}` failed with {}", method, uri, err),
+    )
 }

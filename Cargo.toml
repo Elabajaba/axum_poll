@@ -6,11 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.53"
 askama = "0.11.0"
 askama_axum = "0.1.0"
 axum = "0.5"
+color-eyre = "0.6.1"
 dotenvy = "0.15.0"
+eyre = "0.6.8"
 parking_lot = "0.12"
 rusty_ulid = { version = "1.0.0", default-features = false, features = ["serde", "ulid-generation-time"] }
 serde = { version = "1.0.130", features = ["derive"] }
@@ -20,7 +21,10 @@ tokio = { version = "1.13.0", features = ["full", "tracing"] }
 tower = { version = "0.4.10", features = ["util", "timeout"] }
 tower-http = { version = "0.3", features = ["add-extension", "trace"] }
 tracing = "0.1"
+tracing-error = "0.2.0"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [patch.crates-io]
+
+[features]
 # rusty_ulid = { path = "../rusty_ulid/",  default-features = false, features = ["serde", "ulid-generation-time", "sqlx"] }

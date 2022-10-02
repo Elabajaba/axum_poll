@@ -52,7 +52,6 @@ pub async fn get_database_polls_from_db(mut connection: PoolConnection<Sqlite>) 
         .map(|rec| {
             let temp = String::from_utf8(rec.poll_id.clone()).unwrap();
             let poll_id = Ulid::from_str(&temp).unwrap();
-            // let poll_id = Ulid::try_from(rec.poll_id.as_slice()).unwrap();
             DatabasePoll {
                 poll_id,
                 title: rec.title.to_owned(),

@@ -18,7 +18,9 @@ use axum::{
 use rusty_ulid::{generate_ulid_string, Ulid};
 use sqlx::{Acquire, SqlitePool};
 
-pub(crate) async fn get_all_polls(Extension(db): Extension<SqlitePool>) -> impl IntoResponse {
+// TODO: Separate database calls from routes, and have database calls return errors.
+
+pub(crate) async fn get_all_polls(Extension(db): Extension<SqlitePool>) -> Result<impl IntoResponse, StatusCode> {
     let mut connection = db.acquire().await.unwrap(); // TODO: Error handling middleware.
 
     let polls = sqlx::query!(
@@ -44,7 +46,7 @@ pub(crate) async fn get_all_polls(Extension(db): Extension<SqlitePool>) -> impl 
         })
         .collect();
 
-    (StatusCode::OK, Json(polls))
+    Ok((StatusCode::OK, Json(polls)))
 }
 
 // Creates a new poll
