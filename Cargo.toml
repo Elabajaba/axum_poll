@@ -17,7 +17,7 @@ rusty_ulid = { version = "1.0.0", default-features = false, features = ["serde",
 serde = { version = "1.0.130", features = ["derive"] }
 sqlx = { version = "0.5.9", features = ["runtime-tokio-rustls", "sqlite"] }
 structopt = "0.3.25"
-tokio = { version = "1.13.0", features = ["full", "tracing"] }
+tokio = { version = "1.20.3", features = ["full", "tracing"] }
 tower = { version = "0.4.10", features = ["util", "timeout"] }
 tower-http = { version = "0.3", features = ["add-extension", "trace"] }
 tracing = "0.1"
