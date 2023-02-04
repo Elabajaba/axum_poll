@@ -20,7 +20,9 @@ use sqlx::{Acquire, SqlitePool};
 
 // TODO: Separate database calls from routes, and have database calls return errors.
 
-pub(crate) async fn get_all_polls(Extension(db): Extension<SqlitePool>) -> Result<impl IntoResponse, StatusCode> {
+pub(crate) async fn get_all_polls(
+    Extension(db): Extension<SqlitePool>,
+) -> Result<impl IntoResponse, StatusCode> {
     let mut connection = db.acquire().await.unwrap(); // TODO: Error handling middleware.
 
     let polls = sqlx::query!(
@@ -56,8 +58,8 @@ pub(crate) async fn get_all_polls(Extension(db): Extension<SqlitePool>) -> Resul
 // Potential future options: captcha and duplicate vote checking.
 // returns a Poll
 pub(crate) async fn post_new_poll(
-    Json(input): Json<CreatePoll>,
     Extension(db): Extension<SqlitePool>,
+    Json(input): Json<CreatePoll>,
 ) -> impl IntoResponse {
     // TODO: See if we can directly insert Ulids as bytes into the database, instead of converting to strings.
     let id = generate_ulid_string();

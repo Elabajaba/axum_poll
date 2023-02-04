@@ -1,6 +1,12 @@
 use std::{error::Error, net::SocketAddr, time::Duration};
 
-use axum::{error_handling::HandleErrorLayer, extract::Extension, routing::get, Router, http::{Method, Uri, StatusCode}, BoxError};
+use axum::{
+    error_handling::HandleErrorLayer,
+    extract::Extension,
+    http::{Method, StatusCode, Uri},
+    routing::get,
+    BoxError, Router,
+};
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use tracing_error::ErrorLayer;
@@ -36,6 +42,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let polls_api = Router::new()
         .route("/", get(routes::get_all_polls).post(routes::post_new_poll))
+        // .route("/", post(routes::post_new_poll))
         .route(
             "/:id",
             get(routes::get_single_poll)
@@ -44,7 +51,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         );
 
     let app = Router::new()
-        .nest("/api/polls", polls_api)
+        .nest("/api/v0/polls", polls_api)
         .route("/list/:messages", get(templates::greet))
         .route("/polls", get(templates::temp))
         .layer(Extension(db))
